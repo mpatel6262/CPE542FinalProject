@@ -55,14 +55,15 @@ for core_id in range(NUM_CORES):
         mat1_idx = mat2_idx = 0
 */
 
-module PE_Controller#(parameter PE_COUNT=64)(
+
+//TODO active state is current infinite
+module PE_Controller#(parameter PE_COUNT=64, parameter CORE_ID)(
     input clk,
     input step_fin,
     input[1:0] start, //start[0] = begin preprocessing, start[1] = all data is loaded
     input[31:0] M,
     input[31:0] N,
     input[31:0] P,
-    input[31:0] core_id,
     input[31:0] left_offset,
     input[31:0] right_offset,
     input[31:0] result_offset,
@@ -91,6 +92,7 @@ module PE_Controller#(parameter PE_COUNT=64)(
         case(PS)
             idle: 
             begin
+                PE_active = 0;
 
                 if(start[0]) NS = loading;
                 else NS = idle;
@@ -118,6 +120,9 @@ module PE_Controller#(parameter PE_COUNT=64)(
             active: 
             begin
                 PE_active = 1;
+                if(cells_per_core > 0) cells_per_core = cells_per_core -1;
+                else NS = idle;
+
             end
         
         endcase
@@ -132,8 +137,8 @@ module PE_Controller#(parameter PE_COUNT=64)(
 
             loading:
             begin
-                column <= core_id*cells_per_core;
-                output_cell <= core_id*cells_per_core;
+                column <= CORE_ID*cells_per_core;
+                output_cell <= CORE_ID*cells_per_core;
                 row <= 0;
                 leftdex <= 0;
                 rightdex <= 0;
