@@ -23,7 +23,7 @@
 module SP_testbench(
 
     );
-
+    /*
     logic [31:0] data1 = 0, data2 = 0, addr1, addr2, cnt, out;
     logic clk, active, read_in, out_empty;
     
@@ -95,7 +95,75 @@ module SP_testbench(
     out_empty,
     out
 
+    );*/
+    parameter RAM_SIZE = 256;
+    parameter SQUARE = 3;
+    parameter PE_COUNT = 4;
+
+    logic clk, active, read_in, out_empty;
+    logic[1:0] start_signal[PE_COUNT];
+    logic[31:0] M, N, P;
+    logic[31:0] RAM [RAM_SIZE];
+
+    initial begin
+        clk <= 0;
+        
+        forever #1 clk <= ~clk;
+    end
+
+
+
+    Matrix_Mult#(RAM_SIZE,PE_COUNT) Mat_mul(
+        clk,
+
+        start_signal,
+
+        M,
+        N,
+        P,
+
+        0,
+        0,
+        20,
+
+        RAM
     );
 
+
+    initial begin
+
+        for(int i = 0; i < RAM_SIZE; i++) begin
+            RAM[i] = 0;
+        end
+
+        for(int i = 0; i < (12); i++) begin
+            RAM[i] = i+1;
+        end
+
+
+        for(int i = 0; i < PE_COUNT; i++) begin
+            start_signal[i] = 2'b00;
+        end
+        M = 2;
+        N = SQUARE;
+        P = 4;
+
+        #5
+            for(int i = 0; i < PE_COUNT; i++) begin
+                start_signal[i] = 2'b01;
+            end
+
+        #15
+
+        for(int i = 0; i < PE_COUNT; i++) begin
+                start_signal[i] = 2'b10;
+        end
+
+        #300
+
+        for(int i = 0; i < PE_COUNT; i++) begin
+                start_signal[i] = 2'b00;
+        end
+    end
 
 endmodule

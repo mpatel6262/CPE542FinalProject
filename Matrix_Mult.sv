@@ -20,7 +20,9 @@
 //////////////////////////////////////////////////////////////////////////////////
 
 
-module Matrix_Mult#(parameter RAM_SIZE, PE_COUNT)(
+module Matrix_Mult#(
+    parameter RAM_SIZE = 128, 
+    parameter PE_COUNT = 4)(
     input clk,
 
     input [1:0] start_singal [PE_COUNT],

@@ -25,7 +25,10 @@ for core_id in range(NUM_CORES):
     print(f"CORE: {core_id}")
 
     total_cells = M*P
-    cells_per_core = (total_cells // NUM_CORES)
+
+    if(total_cells > core_id) cells_per_core = (total_cells // NUM_CORES)
+
+
     output_cell = cells_per_core * core_id
     
     column = output_cell
@@ -68,8 +71,8 @@ module PE_Controller#(parameter PE_COUNT=64, parameter CORE_ID)(
     input[31:0] right_offset,
     input[31:0] result_offset,
 
-    output PE_active,
-    output vec_fin,
+    output logic PE_active,
+    output logic vec_fin,
     output[31:0] left_mem_index,
     output[31:0] right_mem_index,
     output[31:0] result_mem_index
@@ -77,17 +80,27 @@ module PE_Controller#(parameter PE_COUNT=64, parameter CORE_ID)(
 
     );
 
-    assign left_mem_index = row + leftdex + left_offset;
-    assign right_mem_index = column + rightdex + right_offset;
-    assign result_mem_index = output_cell + result_offset;
+    
 
     parameter[1:0] idle = 0, loading = 1, calculating = 2, active = 3;
 
     logic[1:0] NS = 0, PS = 0;
 
-    logic[31:0] total_cells, cells_per_core, output_cell, column, row, counter = 0, leftdex, rightdex;
+    logic[31:0] total_cells, cells_per_core, output_cell, column, row, counter = 0, leftdex, rightdex, CPC, spacing, remainder;
+
+
+    assign left_mem_index = row + leftdex + left_offset;
+    assign right_mem_index = column + rightdex + right_offset;
+    assign result_mem_index = output_cell + result_offset;
+
+    assign CPC = ((M*P)>>($clog2(PE_COUNT)));
+    assign remainder = (M*P) << (32 - $clog2(PE_COUNT)) != 0;
 
     always_comb begin
+        vec_fin = 0;
+
+        if(CPC > 0) spacing = CPC + remainder;
+        else spacing = 1;
 
         case(PS)
             idle: 
@@ -97,8 +110,6 @@ module PE_Controller#(parameter PE_COUNT=64, parameter CORE_ID)(
                 if(start[0]) NS = loading;
                 else NS = idle;
 
-                cells_per_core = 0;
-                output_cell = 0;
             end
 
             loading: 
@@ -106,7 +117,7 @@ module PE_Controller#(parameter PE_COUNT=64, parameter CORE_ID)(
                 
                 NS = calculating;
 
-                cells_per_core = (M*N)>>($clog2(PE_COUNT));
+                
                 
             end
 
@@ -119,9 +130,19 @@ module PE_Controller#(parameter PE_COUNT=64, parameter CORE_ID)(
 
             active: 
             begin
-                PE_active = 1;
-                if(cells_per_core > 0) cells_per_core = cells_per_core -1;
-                else NS = idle;
+
+
+                if(counter >= N-1) vec_fin = 1;
+
+                if(cells_per_core == 0 || output_cell >= N*P) begin
+                    PE_active = 0;
+                    NS = idle;
+                end
+                else begin
+                    PE_active = 1;
+                    NS = active;
+                end
+
 
             end
         
@@ -137,8 +158,9 @@ module PE_Controller#(parameter PE_COUNT=64, parameter CORE_ID)(
 
             loading:
             begin
-                column <= CORE_ID*cells_per_core;
-                output_cell <= CORE_ID*cells_per_core;
+                cells_per_core <= spacing;
+                column <= CORE_ID*spacing;
+                output_cell <= CORE_ID*spacing;
                 row <= 0;
                 leftdex <= 0;
                 rightdex <= 0;
@@ -154,20 +176,20 @@ module PE_Controller#(parameter PE_COUNT=64, parameter CORE_ID)(
 
             active:
             begin
-                vec_fin <= 0;
                 if(step_fin) begin
                     
-
-                    if(counter >= N) begin
+                    if(counter >= N-1) begin
                         counter <= 0;
                         output_cell <= output_cell + 1;
-                        column <= column + 1;
-                        vec_fin <= 1;                       //tell PE to clear accumulator and to write output
+                        
+                        cells_per_core <= cells_per_core - 1;
+                        
 
-                        if(column >= P) begin
+                        if(column == P-1) begin
                             column <= 0;
                             row <= row + N;
                         end
+                        else column <= column + 1;
 
                         leftdex <= 0;
                         rightdex <= 0;

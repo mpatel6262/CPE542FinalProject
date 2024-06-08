@@ -20,7 +20,11 @@
 //////////////////////////////////////////////////////////////////////////////////
 
 
-module PE_wrapper#(parameter PE_COUNT=64, CORE_ID, RAM_SIZE)(
+module PE_wrapper#(
+    parameter PE_COUNT=64, 
+    parameter CORE_ID, 
+    parameter RAM_SIZE
+    )(
     input clk,
     input[1:0] start,
     input[31:0] M,

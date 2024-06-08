@@ -20,7 +20,9 @@
 //////////////////////////////////////////////////////////////////////////////////
 
 
-module ProcessingElementMem#(parameter RAM_SIZE)(
+module ProcessingElementMem#(
+    parameter RAM_SIZE
+    )(
     input clk,
     input active,
     input vec_fin,
@@ -34,10 +36,10 @@ module ProcessingElementMem#(parameter RAM_SIZE)(
     output step_fin
     );
 
-    logic [31:0]  mult_out = 0, reg_out = 0, counter = 0, left_in, right_in;
+    logic [31:0]  mult_out = 0, reg_out = 0, counter = 0, left_in, right_in, result = 0;
 
     assign left_in = RAM[left_addr];
-    assign right_int = RAM[right_addr];
+    assign right_in = RAM[right_addr];
 
     /*This variable will always be high for single cycle mutliplication.
     for future work, it will be important to facilitate multicycle calculations
@@ -59,7 +61,7 @@ module ProcessingElementMem#(parameter RAM_SIZE)(
     Register PE_reg(
         clk, 
         result, 
-        vec_fin, 
+        vec_fin|~active, 
         0, 
         reg_out
     );
